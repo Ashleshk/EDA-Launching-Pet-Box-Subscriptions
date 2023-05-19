@@ -1,0 +1,427 @@
+---
+title: "Launching Pet Box Subscriptions"
+author: "Ashlesh Umesh Khajbage"
+date: "`r Sys.Date()`"
+header-includes:
+  - \usepackage[labelformat=empty]{caption}
+  - \usepackage{float}
+  - \floatplacement{figure}{H}
+  - \usepackage{booktabs}
+output: 
+  pdf_document:
+    latex_engine: xelatex
+---
+
+\newpage 
+\tableofcontents 
+\newpage
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE,  message = FALSE,
+                      fig.align = 'center')
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+
+### Loading some datasets ###
+pet_df <- read.csv("data/pet_sales_cleaned.csv")
+pet_count <- read.csv("data/pet_product_count.csv")
+```
+
+# I. About the Company
+
+**PetMind** has made significant strides since its establishment in 2017 serving as an online pet product retailer offering diverse products including grooming supplies,equipment, food and snacks supplements ,toys, accessories and bedding for various pets. To achieve cost effectiveness and promote customer retention by improving brand loyalty PetMind intends on transitioning into the subscription business model. Data shows that the Subscription economy has experienced astonishing growth of over 435% according to Subscription Economy Index (2022) in recent years. Based on their historical data analysis from last year PetMind plans on launching their monthly pet box subscription services within two months as a strategic move towards achieving their goals.
+
+# II. Business Task
+
+**Preparing a list of popular products for the pet box subscription.**
+
+As PetMind strives towards enhancing its brand commitment among customers,focusing on launching an exceptional monthly pet box subscription service remains at the forefront. Consequently,our team is currently shortlisting the most popular products to be featured in the subscription boxes.A crucial question that has emerged is whether only re-purchased items should be considered for inclusion in these boxes.Our research process will revolve around two critical factors: sales performance and repeat purchase behaviour.
+
+When designing the subscription boxes, we must also take into account the diverse needs of different types of pets. Personalized offerings are necessary to cater appropriately to each unique pet requirement.
+
+## II-i. Questions to Consider
+
+1. How many products are being purchased more than once?
+2. Do the products being purchased again have better sales than others?
+3. What products are more likely to be purchased again for different types of pets?
+
+## II-ii. Why Do People Subscribe?
+
+According to *Pivotal* (2022), people subscribe for the following reasons:
+
+- Convenience: The ability to repurchase via simple and automatic payment for each specified term (e.g., monthly, annually).
+- Product tangibility: When compared to other services such as a video subscription, people experience a deeper connection and interest to things they can physically get at their door. 
+- Appropriate balance of control and choice: Subscribing provides access to a reasonable number of options (choice) as well as the opportunity to halt or continue their subscription (control).
+- A sense of belonging: Humans are social creatures. A sense of belonging to a specific brand will make them feel valued as a customer.
+
+\newpage
+
+# III. Process of Data Validation
+
+First, in MySQL Workbench, we established a database and table and imported the 'pet_sales.csv' file, which added 879 observations to the system. Product ID, Product Category, Sales, Vendor ID, Pet Size, Pet Type, and Re-buy were imported as characters, while the remaining fields were imported as numeric values. We looked over each of the characteristics using the data dictionary to ensure their integrity and that the data type is correct for data analysis.
+
+First and foremost, according to the data dictionary (and obviously owing to its nature), sales of products from the previous year should be numeric; hence, we transformed it to a numeric type after eliminating the dollar signs ($) and commas (,). We discovered six different types of pets available in the dataset while browsing through the types of pets available: birds, cats, dogs, fish, hamsters, and rabbits. Because the analysis only required the top four rows, 46 rows of hamsters and rabbits were removed, leaving 833 rows. 
+
+Other variables appeared to be accurate, and this was quickly confirmed using MySQL aggregate methods like "COUNT()," "MAX()," and "MIN()," as well as queries like "GROUP BY." The primary keys are the Product and Vendor IDs since the count of these IDs corresponds to the total number of observations in the dataset. There are exactly 11 different product categories in the dataset: The dataset contained 137 items for equipment, 137 items for toys, 71 supplements, 42 items for bedding, 72 items for housing, 71 items for food, 42 items for clothing, 42 items for accessories, and 42 items for grooming. The same is true for pet sizes, which range from 98 extremely small to 271 small, 270 medium, 97 big, and 97 extra large. Additionally, the ratings are within the required range of 1 to 10, with an average rating of roughly 6.53. Finally, the number of repurchased products last year were 390 whereas 443 were not repurchased.
+
+## III-i. Monthly Cost for Each Pet Type
+
+Notice that the dataset does not include the average monthly expenditure for each pet type. Using center values such as mean or median would not be sufficient since they do not capture the average monthly budget of a pet owner. Hence, based on internet research, we found that different types of pets have the following range or average of expenditure (in US dollars):
+
+- Birds: 40 - 50
+- Cats: 150 - 160
+- Dogs: 150 - 350
+- Fish: 40 - 50
+
+Note that this depends on how old the pets are, how long the pet owner has had the pet for, the lifestyle of the pet owners, and many other factors. Since pet box subscriptions are meant to be budget-friendly, we are going to make the cost of pet box subscriptions for each pet type less than the lower range of monthly cost stated above. Therefore, we are going to filter out bird and fish products over \$40 and cat and dog products over \$150. This will result in 427 rows.
+
+```{r manipulating_data}
+pet_df <- pet_df %>% mutate(price_scaled = price - mean(price),
+                            rating_scaled = rating - mean(rating),
+                            sales_scaled = sales - mean(sales),
+                            number_sold_yr = round(sales/price, 0),
+                            number_sold_m = round((sales/price)/12, 0))
+
+pet_df_filtered <- pet_df %>% 
+  filter((pet_type == 'bird' & price <= 40) |
+           (pet_type == 'cat' & price <= 150)|
+           (pet_type == 'dog' & price <= 150) |
+           (pet_type == 'fish' & price <= 40))
+
+write.csv(pet_df_filtered, "data/pet_df_filtered.csv")
+```
+
+Now that the data validation is complete, we can move forward to data analysis.
+
+\newpage
+
+# IV. Data Discovery and Visualization
+
+## IV-i. Number of Products being Repurchased
+
+```{r table1_count_rebuy}
+table1 <- read.csv("data/table1.csv")
+table1 %>% kable(col.names = c("", "Count of Repurchase", "Sum of Sales"),
+                 caption = 
+                   "Table 1: Count and Sales of Products",
+                 booktabs = T) %>% 
+  kable_styling(latex_options = "HOLD_position")
+```
+
+To start, we may use Microsoft Excel to make a straightforward pivot table to count the number of things that clients had previously purchased. 
+
+
+Table 1 above shows that 192 products (`r round(100*192/427,2)`%) were bought more than once whereas 235 products (`r round(100*235/427,2)`%) were not bought again. The total amount of sales for products that were not repurchased last year (27,590,000 USD) was higher than the total amount of sales for products that were (21,826,000 USD). 
+
+In general, fewer products were purchased more than once, and sales of these products increased last year compared to those that were repurchased.
+
+## IV-ii. Number of Repurchased vs. Non-Repurchased Products for each Product Category
+
+Recall that the pet box subscription has to be tailored for different types of pets. Therefore, we need to first identify the popular product categories that are purchased more than once for different types of pets.
+
+```{r fig1}
+fig1 <- pet_count %>%
+  ggplot(aes(x = product_category, y = count, 
+                         fill = as.factor(re_buy))) + 
+  geom_bar(position = 'dodge', stat = 'identity') +
+  scale_fill_brewer(palette = "Set1", 
+                    name = "Repurchased",
+                    labels = c("No", "Yes")) +
+  labs(x = "Pet type", y = "Count", 
+       caption = "Figure 1 \n Number of products that were/were not repurchased \n for different product categories, by different types of pets.") +
+  facet_wrap(~pet_type, labeller = as_labeller(c(`bird` = "Bird",
+                                                 `cat` = "Cat",
+                                                 `dog` = "Dog",
+                                                 `fish` = "Fish"))) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.75, hjust = 1))
+
+fig1
+```
+
+Considering the aggregated data from Table 1, we can visualize the number of product categories that were repurchased for different types of pets (See Figure 1). 
+
+One prominent aspect we observe is that dogs and cats have more products compared to fish and birds. Thus, we might want to consider including more products for dogs and cats compared to fish and birds.
+
+The product categories listed below for each type of pet are those with a higher or equal number of repurchased products than non-repurchased products. Note that the product categories with an asterisk (*) are the ones that have the highest counts among the repurchased products.
+
+- Birds: Equipment, Food, Toys*
+- Cats: Clothes, Equipment*, Food, Housing
+- Dogs: Bedding, Clothes, Equipment*, Food, Medicine
+- Fish: Medicine, Snack, Supplements*, Toys
+
+## IV-iii. Sales of Repurchased vs. Non-Repurchased Products for each Product Category
+
+The sum of sales of each product category last year (See Figure 2) seems to have some overlaps with the findings from Figure 1.
+
+```{r fig2}
+fig2 <- pet_df_filtered %>% group_by(pet_type, product_category, re_buy) %>% 
+  summarize(sum_sales = sum(sales)) %>% 
+  ggplot(aes(x = product_category, sum_sales, fill = as.factor(re_buy))) +
+  geom_bar(stat= 'identity', position = 'dodge') +
+  facet_wrap(~pet_type, labeller = as_labeller(c(`bird` = "Bird",
+                                                 `cat` = "Cat",
+                                                 `dog` = "Dog",
+                                                 `fish` = "Fish"))) +
+  scale_fill_brewer(name = "Repurchased", labels = c("No", "Yes"), palette = "Set1") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.75, hjust = 1)) +
+  labs(x = "Product Category", y = "Sum of Sales from Last Year ($)",
+       caption = "Figure 2 \n Sales of products that were/were not repurchased \n for different product categories, by different types of pets.")
+
+fig2
+```
+
+Based on Figure 2 above, the product categories with higher total sales in repurchased products compared to non-repurchased products are listed below for each type of pet:
+
+- Birds: Equipment*, Food
+- Cats: Accessory, Bedding, Clothes, Equipment*, Food, Housing
+- Dogs: Bedding, Equipment*, Medicine
+- Fish: Medicine*, Supplements
+
+When solely looking at the repurchased products, we have the following listed as the top 5 product categories, in descending order:
+
+```{r table2_sales}
+table2 <- read.csv("data/table2.csv")
+table2 %>% mutate(pet_type = rep("", nrow(table2))) %>% 
+  select(-c(rank)) %>% 
+  kable(col.names = c("Pet type", "Product Category", "Total Sales"),
+        caption = "Table 2: Top 5 Repurchased Product Categories with High Sales for each Pet Type",
+        booktabs = T) %>% 
+  pack_rows("Bird", 1, 4) %>% 
+  pack_rows("Cat", 5, 9) %>% 
+  pack_rows("Dog", 10, 14) %>% 
+  pack_rows("Fish", 15, 18) %>% 
+  kable_styling(latex_options = "HOLD_position")
+```
+
+Based on Table 2, repurchased snacks seem to have relatively high sales for all types of pets. Moreover, Table 2 and Figure 2 suggest that equipment has the highest sales for birds, cats, and dogs.
+
+In general, it is not necessarily the case that repurchased products have higher sales than non-repurchased products. For all pet types, non-repurchased products have higher sales and counts than those of repurchased products (See Table 3 below). Instead, it is the product category that matters within each type of pet since the sales and counts of repurchased products differ for each product category of pet types.
+
+```{r table3_sales_and_rebuy}
+table3 <- read.csv("data/table3.csv", row.names = NULL) %>% 
+  mutate(X = case_when(
+    X == "Sum of sales" ~ "Sum of sales",
+    X == "Count of re_buy" ~ "Count of repurchase",
+    X == "Total Sum of sales" ~ "Total Sum of sales",
+    X == "Total Count of re_buy" ~ "Total Count of repurchase",
+    TRUE ~ " "
+  ))
+table3 <- table3[-c(1, 2, 5, 8, 11),]
+row.names(table3) <- NULL
+table3 <- rename(table3, c('pet_type' = X, 
+                 'No' = Column.Labels, 
+                 "Yes" = X.1, 
+                 'grand_total' = X.2))
+table3 %>% kable(col.names = c("Aggregated data", "No", "Yes", "Grand Total"),
+                 caption = "Table 3: Count and Sales of Products for each Pet Type", booktabs = T) %>% 
+  add_header_above(c("Pet type" = 1, "Repurchased" = 2, " ")) %>% 
+  pack_rows("Bird", 1, 2) %>%
+  pack_rows("Cat", 3, 4) %>% 
+  pack_rows("Dog", 5, 6) %>% 
+  pack_rows("Fish", 7, 8) %>% 
+  pack_rows("All pets", 9, 10) %>% 
+  kable_styling(latex_options = "HOLD_position")
+```
+
+### IV-iii.i. Combining Sales and Repurchase
+
+The repurchase and sales results from above suggest that the following product categories are significant for each type of pet. 
+
+- Birds: Equipment, Food, Snack
+- Cats: Equipment, Clothes, Food, Housing, Snack
+- Dogs: Bedding, Equipment, Medicine, Snack
+- Fish: Medicine, Supplements, Snack
+
+### IV-iv. Relationships between Variables
+
+We can also fit logistic models to investigate whether price, rating, and sales are correlated with repurchase for each type of pet. Results of the logistic models would indicate the log-odds ratios of predictors (for repurchased and non-repurchased products) and their corresponding p-values. The log-odds ratios can be converted to odds ratios by simply exponentiating them. 
+
+```{r table4_mods_results}
+bird_df <- pet_df %>% filter(pet_type == 'bird')
+cat_df <- pet_df %>% filter(pet_type == 'cat')
+dog_df <- pet_df %>% filter(pet_type == 'dog')
+fish_df <- pet_df %>% filter(pet_type == 'fish')
+
+bird_mod <- glm(as.factor(re_buy) ~ price_scaled + rating_scaled + 
+                  sales_scaled +
+                  pet_size, 
+             data = bird_df,
+           family = binomial(link='logit'))
+cat_mod <- glm(as.factor(re_buy) ~ price_scaled + rating_scaled + 
+                 sales_scaled + 
+                 pet_size, 
+             data = cat_df,
+           family = binomial(link='logit'))
+dog_mod <- glm(as.factor(re_buy) ~ price_scaled + rating_scaled + sales_scaled +
+                 pet_size, 
+             data = dog_df,
+           family = binomial(link='logit'))
+fish_mod <- glm(as.factor(re_buy) ~ price_scaled + rating_scaled + 
+                  sales_scaled +
+                  pet_size, 
+             data = fish_df,
+           family = binomial(link='logit'))
+
+
+intercept = c(0.48, 1.04, 1.18, 1.92)
+price_scaled = c("1.00", "1.00", "1.00", "1.00")
+rating_scaled = c(0.91, 0.97, 0.86, 1.82)
+sales_scaled = c("1.00", "1.00", "1.00", "1.00")
+pet_size_xs = c(0.46, 0.78, 1.27, "0.00")
+pet_size_l = c(1.56, 0.89, 0.69, 0.06)
+pet_size_m = c(1.28, 0.88, 1.24, 0.93)
+pet_size_s = c(2.85, 0.85, 0.68, 0.38)
+pvals <- c(0.47, 0.58, 0.53, 0.88, 0.61, 0.75, 0.81, 0.43,
+           "0.90", 0.18, 0.44, 0.91, 0.56, 0.79, 0.71, "0.70",
+           0.61, 0.14, "<0.001", "0.90", 0.59, 0.39, 0.62, 0.28,
+           0.54, 0.89, 0.06, 0.21, 0.99, 0.12, 0.96, 0.38)
+
+birds_OR <- c(intercept[1], price_scaled[1], rating_scaled[1], 
+                   sales_scaled[1], pet_size_xs[1], pet_size_l[1],
+                   pet_size_m[1], pet_size_s[1])
+cats_OR <- c(intercept[2], price_scaled[2], rating_scaled[2], 
+                   sales_scaled[2], pet_size_xs[2], pet_size_l[2],
+                   pet_size_m[2], pet_size_s[2])
+dogs_OR <- c(intercept[3], price_scaled[3], rating_scaled[3], 
+                   sales_scaled[3], pet_size_xs[3], pet_size_l[3],
+                   pet_size_m[3], pet_size_s[3])
+fish_OR <- c(intercept[4], price_scaled[4], rating_scaled[4], 
+                   sales_scaled[4], pet_size_xs[4], pet_size_l[4],
+                   pet_size_m[4], pet_size_s[4])
+
+# Create table
+mod_results <- data.frame(predictors = 
+                            c(rep(c("Intercept", 'Price scaled', 'Rating scaled',
+                                         'Sales scaled', 'Pet size - extra small',
+                                         'Pet size - large', 'Pet size - medium',
+                                         'Pet size - small'), 4)),
+                          odds_ratio = c(birds_OR, cats_OR, dogs_OR, fish_OR),
+                          p_values = pvals)
+
+mod_results %>% kable(col.names = c("Predictors", "Odds ratio", "P-values"), 
+                      caption = "Table 4: Logistic Regression Results",
+                      booktabs = T) %>% 
+  pack_rows("Bird", 1, 8) %>% 
+  pack_rows("Cat", 9, 16) %>% 
+  pack_rows("Dog", 17, 24) %>% 
+  pack_rows("Fish", 25, 32) %>% 
+  kable_styling(latex_options = "HOLD_position")
+```
+
+According to the results (See Table 4), price, rating, and sales are not statistically significant for birds, cats, and fish based on the significance level $\alpha = 0.05$, meaning they are not meaningfully correlated with repurchase. A predictor is only statistically significant when it is smaller than $\alpha$^[Although p-value is not the absolute standard all the time; Going in depth and discussing statistics would not be necessary for this report.]. When it comes to dogs, we notice that the p-value of the odds ratio of rating is smaller than $\alpha = 0.05$. This means that the following interpretation is statistically significant:
+
+- For every 1 rating increase in a dog product, a customer repurchasing that product decreases by `r round(1 - exp(summary(dog_mod)$coef[3,1]), 4)*100`% compared to other dog products, given that all other conditions remain constant.
+
+Hence, we might want to consider a dog product with a lower rating when selecting products for the dog pet box subscription. Other factors are not statistically significant for dog products as well.
+
+## IV-v. Summary Statistics of Price
+
+Although product price is not statistically correlated with repurchase, we will still use price to select the products for pet box subscription. This is to ensure that we are not forcing the customers to pay high subscription fees for expensive products within their pet box subscription. Hence, we can visualize the range of prices for each product category of pet type with boxplots. The prices of products we select for box subscriptions would not go beyond the 75th percentile, which is equivalent to the upper end of a box in the plot without the whiskers.
+
+```{r fig3_boxplot}
+pet_df_filtered %>% 
+  ggplot(aes(x = product_category, y = price, fill = product_category)) +
+  geom_boxplot() + 
+  facet_wrap(~pet_type, labeller = as_labeller(c(`bird` = "Bird",
+                                                 `cat` = "Cat",
+                                                 `dog` = "Dog",
+                                                 `fish` = "Fish"))) + 
+  scale_fill_brewer(palette = "Spectral") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.75, hjust = 1),
+        legend.position = "none") +
+  labs(x = "Product Category", y = "Price",
+       caption = "Figure 3
+                  Range of product price for each product category of pet types.") 
+```
+
+\newpage 
+
+# V. Recommendations for Monthly Subscriptions
+
+So far, we acquired the list of significant product categories for different types of pets based on repurchase and sales. We also noted that the products for birds and fish should be less than \$40, whereas those for cats and dogs should be less than \$150. Moreover, cats and dogs should have more products in their box subscription due to the fact that they have more products available and the difference in the amount of monthly spend. Rating was also an important factor for dog products. Considering such factors, Table 5 is a list of repurchased products with high sales in the product categories that we have defined as significant. 
+
+```{r table5_specific_products}
+table5 <- read.csv("data/table5.csv")
+
+table5 %>% select(-c(pet_type, re_buy)) %>% 
+  kable(col.names = c("Pet type, Product Category", "Product ID",
+                                  "Price", "Rating", "Sales"),
+                    caption = "Table 5: List of Products",
+        booktabs = T) %>% 
+  pack_rows("Bird", 1, 5) %>% 
+  pack_rows("Cat", 6, 15) %>% 
+  pack_rows("Dog", 16, 25) %>% 
+  pack_rows("Fish", 26, 30) %>% 
+  kable_styling(latex_options = "HOLD_position")
+```
+
+We will create the pet box subscription as diverse as possible with products from various product categories to make the tangible products more entertaining for customers. Recall that snacks had one of the highest sales among repurchased products (See Table 2). For all pet types, we will also have customers choose a snack sample among a few options given. This would make the subscription feel more unique for themselves and make them feel respected.
+
+The product ID's for each type of pet listed below are the specific products for the corresponding pet box subscription. After a certain amount of time, the products will change to different products within the same product categories to ensure customers would not lose interest.
+
+A discount will be applied to all products in the pet box subscriptions so that the price of products would be cheaper than when they are bought individually. The amount of discount is to be discussed. The prices indicated below are before discounts are applied and before adding a snack sample.
+
+## V-i. Pet Box Subscription - Birds
+
+*Pet Box Price*: \$`r 0.35 + 14.42`
+
+- Equipment: 5037
+- Food: 4242
+- Snacks: Choose one from 4987, 5005, 5017
+
+## V-ii. Pet Box Subscription - Cats
+
+*Pet Box Price*: \$`r 22.16 + 43.90 + 24.10`
+
+Food: 4583
+Clothes: 4663
+Equipment: 4797
+Snack: Choose one from 4777, 4819, 4639
+
+## V-iii. Pet Box Subscription - Dogs
+
+*Pet Box Price*: \$`r 4.03 + 52.82 + 13.51`
+
+Snack: Choose one from 4430, 4948, 4792, 4816
+Equipment: 4932 
+Medicine: 4414 
+Bedding: 4620
+
+## V-iv. Pet Box Subscription - Fish
+
+*Pet Box Price*: \$`r 22.01 + 36.11`
+
+Snack: Choose one from 5008, 5014
+Medicine: 4271
+Supplements: 4217 
+
+\newpage 
+
+# VI. Limitations
+
+## VI-i. Monthly Expenditure Per Customer
+
+It would be ideal to know PetMind's average or median budget  for each pet type. This would make it  easier to decide on the price of pet orders and the like.
+
+## VI-ii. Survey
+
+Price, rating, or pet size did not significantly correlate with repurchase, as shown by the results of logistics regression models for each type of pet (with the exception of dog product ratings). As a result, it was challenging to pinpoint the causes of product repurchases. Using a survey to follow up with clients and gathering qualitative or quantitative data could provide further insight into their preferences.
+
+\newpage 
+
+# VII. References
+
+|  Clifford, Garth C. "How Much Does a Parakeet Cost? (+Monthly Expenses)."
+|    World Birds, 4 Aug. 2021, 
+|    https://worldbirds.com/how-much-does-a-parakeet-cost/. 
+|  
+|  Patel, Arti. "How Much Does It Cost to Own a Dog? 7 Canadians Break down
+|    Their Budgets - National." Global News, Global News, 7 Mar. 2019,
+|    https://globalnews.ca/news/4979041/how-much-does-cost-own-dog/. 
+|  
+|  "The Psychology of Subscription: Why Do We Subscribe?" Pivotal, 16 Mar. 2022,
+|    https://www.drivepivotal.com/blog/the-psychology-of-subscription-why-do-we-subscribe/. 
+|  
+|  "Subscription Economy Index™ vs S&amp;P 500 &amp; U.S. Retail Sales." Zuora,
+|    Feb. 2022, https://www.zuora.com/resources/subscription-economy-index/#mktoForm_2180. 

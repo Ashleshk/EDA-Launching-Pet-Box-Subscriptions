@@ -1,0 +1,16 @@
+,Column Labels,,
+Row Labels,0,1,Grand Total
+bird,,,
+Sum of sales,863000,545000,1408000
+Count of re_buy,5,5,10
+cat,,,
+Sum of sales,13410000,9999000,23409000
+Count of re_buy,117,89,206
+dog,,,
+Sum of sales,12167000,10673000,22840000
+Count of re_buy,105,94,199
+fish,,,
+Sum of sales,1150000,609000,1759000
+Count of re_buy,8,4,12
+Total Sum of sales,27590000,21826000,49416000
+Total Count of re_buy,235,192,427

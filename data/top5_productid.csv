@@ -1,0 +1,27 @@
+Pet Type,Rank,Product ID,Product Category,Sales,Price,Rating,Repurchase,Repurchase
+Bird,1,4266,Equipment,224000,241.46,5,0,No
+,2,5013,Equipment,223000,191.52,6,0,No
+,3,4987,Snack,222000,18.36,6,0,No
+,4,4296,Accessory,221000,234.65,8,1,Yes
+,5,4997,Toys,220000,176.38,6,0,No
+Cat,1,4627,Food,230000,211.91,10,0,No
+,1,4599,Housing,230000,75.45,10,1,Yes
+,2,4777,Snack,229000,45.23,7,0,No
+,2,4749,Food,229000,192.15,7,1,Yes
+,2,4723,Medicine,229000,62.65,10,0,No
+,3,4583,Food,228000,22.16,10,1,Yes
+,4,4321,Equipment,227000,105.35,5,0,No
+,5,4931,Toys,226000,25.8,6,0,No
+,5,4803,Equipment,226000,244.13,7,1,Yes
+Dog,1,4648,Accessory,230000,19.36,10,0,No
+,2,4362,Accessory,229000,168.49,2,1,Yes
+,2,4430,Snack,229000,66.4,6,1,Yes
+,2,4340,Accessory,229000,18.51,6,0,No
+,3,4426,Supplements,228000,241.41,8,0,No
+,4,4372,Grooming,227000,6.24,9,0,No
+,5,4892,Toys,224000,17.16,6,0,No
+Fish,1,4986,Equipment,228000,227.18,6,0,No
+,2,5020,Snack,226000,219.18,6,1,Yes
+,3,5010,Equipment,224000,31.47,6,0,No
+,4,4990,Snack,221000,178.19,6,0,No
+,5,5024,Toys,218000,178.31,6,1,Yes
