@@ -1,12 +1,11 @@
 # Launching Pet Box Subscriptions by Analyzing Pet Product Sales
-*Last modified: Sep 20, 2022*
-
+*Last modified: Apr 8, 2023*
 
 Tools used: R (R Studio), MySQL, Microsoft Excel
 
 ## Contents
 
-*See [here](https://github.com/hynprk/pet_sales/blob/main/report.pdf) for the full report.*
+*See [here](https://github.com/Ashleshk/EDA-Launching-Pet-Box-Subscriptions/blob/main/report.pdf) for the full report.*
 
 **I. About the Company**
 
